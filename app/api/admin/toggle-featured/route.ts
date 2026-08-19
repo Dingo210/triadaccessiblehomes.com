@@ -2,13 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { isAuthenticated } from '@/lib/admin-auth';
 
 export async function POST(request: NextRequest) {
-  // Check admin auth
-  const cookieStore = cookies();
-  const auth = cookieStore.get('admin_auth');
-  if (auth?.value !== 'authenticated') {
+  if (!isAuthenticated()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
