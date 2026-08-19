@@ -1,0 +1,33 @@
+generator client {
+    provider = "prisma-client-js"
+    // "native" covers local dev; "rhel-openssl-3.0.x" is the Vercel serverless
+    // (AWS Lambda / Amazon Linux) runtime target.
+    binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Business {
+  id                   String    @id @default(cuid())
+  name                 String
+  category             String
+  categorySlug         String
+  description          String
+  address              String    @default("")
+  phone                String    @default("")
+  email                String    @default("")
+  website              String    @default("")
+  photoUrl             String    @default("")
+  featured             Boolean   @default(false)
+  featuredUntil        DateTime?
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([categorySlug])
+  @@index([featured])
+}
