@@ -15,11 +15,12 @@ export function Footer() {
               className="h-12 w-auto"
             />
           </Link>
-          <div className="flex gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <Link href="/#categories" className="hover:text-primary transition-colors">Categories</Link>
             <Link href="/locations" className="hover:text-primary transition-colors">Locations</Link>
             <Link href="/guides" className="hover:text-primary transition-colors">Guides</Link>
+            <Link href="/for-providers" className="hover:text-primary transition-colors">For Providers</Link>
             <Link href="/admin" className="hover:text-primary transition-colors">Admin</Link>
           </div>
         </div>
