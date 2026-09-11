@@ -17,7 +17,6 @@ export default async function HomePage() {
 
   const allBusinesses = await prisma.business.findMany({
     orderBy: [{ featured: 'desc' }, { name: 'asc' }],
-    take: 8,
   });
 
   // count per category
