@@ -67,7 +67,7 @@ triadaccessiblehomes.com/          # repo root == the Next.js app
 │   └── schema.prisma              # single `Business` model
 │
 ├── scripts/
-│   ├── seed.ts                    # seeds the 20 Triad businesses (idempotent upsert)
+│   ├── seed.ts                    # seeds the 21 Triad businesses (idempotent upsert)
 │   └── safe-seed.ts               # guard wrapper; aborts if seed.ts contains deletes
 │
 ├── lib/
@@ -208,8 +208,15 @@ and handles three events:
 | Event | Effect |
 |-------|--------|
 | `checkout.session.completed` | set `featured = true`, `featuredUntil = +1 month`, store Stripe subscription + customer IDs |
-| `customer.subscription.updated` | sync `featured` to subscription status, refresh `featuredUntil` from `current_period_end` |
+| `customer.subscription.updated` | sync `featured` to subscription status, refresh `featuredUntil` from `current_period_end` (see note below) |
 | `customer.subscription.deleted` | clear `featured`, `featuredUntil`, `stripeSubscriptionId` |
+
+> **`current_period_end` is read from two places.** It moved off the Subscription object onto its
+> items in the Basil-era API versions. Because the webhook endpoint follows the account's default
+> API version rather than a pin, `getPeriodEnd()` in the handler reads
+> `subscription.items.data[0].current_period_end` first and falls back to the legacy top-level
+> field. Only `featuredUntil` (a display date) depends on it — `featured` itself is driven by
+> `subscription.status`.
 
 **All three must be enabled on the Stripe endpoint.** They were not historically — only
 `checkout.session.completed` was, which meant a cancelled subscription never revoked featured
@@ -275,7 +282,7 @@ Queries featured businesses, a preview of all businesses, and per-category count
 `JSON.parse(JSON.stringify(...))` to strip non-serializable `Date` fields.
 
 ### 4.10 `scripts/seed.ts` / `safe-seed.ts`
-Idempotent `upsert` seed of the 20 Triad businesses. `slugify(name)` becomes the row `id`.
+Idempotent `upsert` seed of the 21 Triad businesses. `slugify(name)` becomes the row `id`.
 `safe-seed.ts` refuses to run if `seed.ts` contains `prisma.*.delete`/`deleteMany`, so the seed can
 never destroy data. `package.json` wires `prisma.seed` to `safe-seed.ts`.
 
@@ -295,14 +302,21 @@ never destroy data. `package.json` wires `prisma.seed` to `safe-seed.ts`.
 created lazily on first checkout and reused (`metadata.app = 'accesshome_featured'`).
 **Keys are LIVE mode → real charges.**
 
-The webhook endpoint is configured at `https://triadaccessiblehomes.com/api/webhooks/stripe`.
-Because the endpoint is tied to the **URL**, and the domain did not change during the Vercel
-migration, the endpoint and its signing secret carried over untouched.
+**Billing moved to a dedicated Stripe account on 2026-09-12.** The site previously billed on
+the Neverclock account (`acct_1TwB5v…`); it now uses **Triad Accessible Homes**
+(`acct_1UErXo…`). The old endpoint `we_1U3On9K7aV1ckdAHsdqNkt5d` is **disabled**; the live one is
+`we_1UErooBLDOf4Muq4LmvqlSZd` at `https://triadaccessiblehomes.com/api/webhooks/stripe`, with the
+same six events. `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Vercel belong to the new
+account — the two are account-specific and must always be rotated together.
+
+The endpoint is **not pinned** to an API version, so it delivers the account's current default
+(`2026-08-26.dahlia` at time of writing) rather than the `2025-04-30.basil` pinned in
+`lib/stripe.ts`. See §4.4 for why the handler reads `current_period_end` from both locations.
 
 **Google Analytics 4.** gtag.js via `NEXT_PUBLIC_GA_MEASUREMENT_ID` (currently `G-9Y9C5TK4MR`).
 
-**SEO.** Dynamic `sitemap.ts` (39 URLs: homepage, search, guides, locations, all categories, all
-guide & city slugs, all 20 listings) and `robots.ts` (disallows `/admin` and `/api/`). JSON-LD on
+**SEO.** Dynamic `sitemap.ts` (42 URLs: homepage, search, for-providers, guides, locations, all categories, all
+guide & city slugs, all 21 listings) and `robots.ts` (disallows `/admin` and `/api/`). JSON-LD on
 every page type. Google Search Console verification token lives in `layout.tsx` metadata and is
 registered against the **apex** domain.
 
@@ -368,7 +382,7 @@ yarn install            # postinstall runs `prisma generate`
 # 3. Apply the schema (safe, additive)
 yarn prisma db push
 
-# 4. Seed the 20 Triad businesses (idempotent — safe to re-run)
+# 4. Seed the 21 Triad businesses (idempotent — safe to re-run)
 yarn prisma db seed
 
 # 5. Start the dev server → http://localhost:3000
@@ -422,7 +436,7 @@ www   A   216.198.79.1
 | `www.triadaccessiblehomes.com` | 308 redirect → apex |
 
 > **Keep the apex canonical.** `getSiteUrl()` derives URLs from the request host, so serving on
-> `www` would silently rewrite every canonical URL, OG tag and all 39 sitemap entries to a hostname
+> `www` would silently rewrite every canonical URL, OG tag and all 42 sitemap entries to a hostname
 > Google has not indexed, and the Search Console property is registered against the apex.
 
 ### Post-deploy checklist
@@ -439,7 +453,7 @@ www   A   216.198.79.1
 - **8 service categories** (`lib/categories.ts`): home-modifications, mobility-accessibility,
   stair-platform-lifts, bathroom-remodeling, kitchen-bath-remodeling, general-contractors,
   handyman-services, aging-in-place.
-- **20 seeded businesses** — real Triad-area providers. Their `website` links point to the
+- **21 seeded businesses** — real Triad-area providers. (Blue Ridge Builders of the Triad added 2026-09-11.) Their `website` links point to the
   businesses' own sites; some return 4xx to automated crawlers (they block bots) — expected, not
   an app bug.
 - Business `address` fields are largely empty, so **city landing pages** (`/locations/*`) honestly
@@ -468,8 +482,9 @@ www   A   216.198.79.1
 
 ## 12. Known Open Items
 
-- **Stripe keys are LIVE and were previously stored in plaintext on the Abacus platform.**
-  Rotating them in the Stripe dashboard is advisable; update Vercel env vars and redeploy after.
+- **Stripe keys are LIVE → real charges.** The pre-2026-09-12 Neverclock keys are retired: the
+  account move forced a fresh secret key, which was rolled with immediate expiry. Never run test
+  flows against production.
 - **The old Abacus deployment and its database still exist** at time of writing. The Abacus
   database is unreachable from outside their network (its host resolves to RFC1918 private space),
   so no data can be recovered from it — but `scripts/seed.ts` reproduces it exactly (§3).

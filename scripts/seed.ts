@@ -224,6 +224,15 @@ const businesses: BusinessSeed[] = [
     website: 'https://stairlifter-usa.com/winston-salem/',
     photoUrl: categoryImages['stair-platform-lifts'],
   },
+  {
+    name: 'Blue Ridge Builders of the Triad, Inc.',
+    category: 'Design-build contractor / aging-in-place (CAPS)',
+    categorySlug: 'aging-in-place',
+    description: 'Greensboro design-build contractor led by a Certified Aging-in-Place Specialist (CAPS): remodels, additions, and ADUs.',
+    phone: '(336) 362-2512',
+    website: 'https://www.blueridgebuilders.com',
+    photoUrl: 'https://images.unsplash.com/photo-1590725140246-20acdee442be?auto=format&fit=crop&w=1200&q=80',
+  },
 ];
 
 async function main() {

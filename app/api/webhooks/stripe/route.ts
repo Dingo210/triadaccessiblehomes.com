@@ -5,6 +5,16 @@ import { prisma } from '@/lib/db';
 import { getStripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 
+// `current_period_end` moved from the Subscription object onto its items in the
+// Basil-era API versions. The webhook endpoint is unpinned and follows the
+// account's default version, so read the item value first and fall back to the
+// legacy top-level field.
+function getPeriodEnd(subscription: Stripe.Subscription): Date | null {
+  const subAny = subscription as any;
+  const epoch = subAny?.items?.data?.[0]?.current_period_end ?? subAny?.current_period_end;
+  return typeof epoch === 'number' ? new Date(epoch * 1000) : null;
+}
+
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
   const rawBody = await request.text();
@@ -60,10 +70,7 @@ export async function POST(request: NextRequest) {
         });
         if (business) {
           const isActive = subscription?.status === 'active' || subscription?.status === 'trialing';
-          const subAny = subscription as any;
-          const periodEnd = subAny?.current_period_end
-            ? new Date((subAny.current_period_end as number) * 1000)
-            : null;
+          const periodEnd = getPeriodEnd(subscription);
 
           await prisma.business.update({
             where: { id: business.id },
