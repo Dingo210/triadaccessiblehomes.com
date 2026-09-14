@@ -67,7 +67,7 @@ triadaccessiblehomes.com/          # repo root == the Next.js app
 │   └── schema.prisma              # single `Business` model
 │
 ├── scripts/
-│   ├── seed.ts                    # seeds the 21 Triad businesses (idempotent upsert)
+│   ├── seed.ts                    # seeds the 22 Triad businesses (idempotent upsert)
 │   └── safe-seed.ts               # guard wrapper; aborts if seed.ts contains deletes
 │
 ├── lib/
@@ -282,7 +282,7 @@ Queries featured businesses, a preview of all businesses, and per-category count
 `JSON.parse(JSON.stringify(...))` to strip non-serializable `Date` fields.
 
 ### 4.10 `scripts/seed.ts` / `safe-seed.ts`
-Idempotent `upsert` seed of the 21 Triad businesses. `slugify(name)` becomes the row `id`.
+Idempotent `upsert` seed of the 22 Triad businesses. `slugify(name)` becomes the row `id`.
 `safe-seed.ts` refuses to run if `seed.ts` contains `prisma.*.delete`/`deleteMany`, so the seed can
 never destroy data. `package.json` wires `prisma.seed` to `safe-seed.ts`.
 
@@ -315,8 +315,8 @@ The endpoint is **not pinned** to an API version, so it delivers the account's c
 
 **Google Analytics 4.** gtag.js via `NEXT_PUBLIC_GA_MEASUREMENT_ID` (currently `G-9Y9C5TK4MR`).
 
-**SEO.** Dynamic `sitemap.ts` (41 URLs: homepage, search, for-providers, guides, locations, all categories, all
-guide & city slugs, all 21 listings) and `robots.ts` (disallows `/admin` and `/api/`). JSON-LD on
+**SEO.** Dynamic `sitemap.ts` (42 URLs: homepage, search, for-providers, guides, locations, all categories, all
+guide & city slugs, all 22 listings) and `robots.ts` (disallows `/admin` and `/api/`). JSON-LD on
 every page type. Google Search Console verification token lives in `layout.tsx` metadata and is
 registered against the **apex** domain.
 
@@ -382,7 +382,7 @@ yarn install            # postinstall runs `prisma generate`
 # 3. Apply the schema (safe, additive)
 yarn prisma db push
 
-# 4. Seed the 21 Triad businesses (idempotent — safe to re-run)
+# 4. Seed the 22 Triad businesses (idempotent — safe to re-run)
 yarn prisma db seed
 
 # 5. Start the dev server → http://localhost:3000
@@ -436,7 +436,7 @@ www   A   216.198.79.1
 | `www.triadaccessiblehomes.com` | 308 redirect → apex |
 
 > **Keep the apex canonical.** `getSiteUrl()` derives URLs from the request host, so serving on
-> `www` would silently rewrite every canonical URL, OG tag and all 41 sitemap entries to a hostname
+> `www` would silently rewrite every canonical URL, OG tag and all 42 sitemap entries to a hostname
 > Google has not indexed, and the Search Console property is registered against the apex.
 
 ### Post-deploy checklist
@@ -453,7 +453,7 @@ www   A   216.198.79.1
 - **8 service categories** (`lib/categories.ts`): home-modifications, mobility-accessibility,
   stair-platform-lifts, bathroom-remodeling, kitchen-bath-remodeling, general-contractors,
   handyman-services, aging-in-place.
-- **21 seeded businesses** — real Triad-area providers. (Blue Ridge Builders of the Triad added 2026-09-11.) Their `website` links point to the
+- **22 seeded businesses** — real Triad-area providers. (Blue Ridge Builders of the Triad added 2026-09-11; Comer Shuford LLC added 2026-09-14.) `email` is optional in the seed and set only for providers that already publish one. Their `website` links point to the
   businesses' own sites; some return 4xx to automated crawlers (they block bots) — expected, not
   an app bug.
 - Business `address` fields are largely empty, so **city landing pages** (`/locations/*`) honestly

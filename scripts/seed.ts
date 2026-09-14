@@ -8,6 +8,7 @@ interface BusinessSeed {
   categorySlug: string;
   description: string;
   phone: string;
+  email?: string;
   website: string;
   photoUrl: string;
 }
@@ -233,6 +234,16 @@ const businesses: BusinessSeed[] = [
     website: 'https://www.blueridgebuilders.com',
     photoUrl: 'https://images.unsplash.com/photo-1590725140246-20acdee442be?auto=format&fit=crop&w=1200&q=80',
   },
+  {
+    name: 'Comer Shuford LLC',
+    category: 'General contractor / aging-in-place (CAPS)',
+    categorySlug: 'aging-in-place',
+    description: 'Greensboro general contractor with NAHB Certified Aging-in-Place Specialist (CAPS) credentials: custom homes, additions, renovations, and kitchen/bath remodels.',
+    phone: '(336) 471-5205',
+    email: 'lee@comershuford.com',
+    website: 'https://www.comershuford.com',
+    photoUrl: categoryImages['aging-in-place'],
+  },
 ];
 
 async function main() {
@@ -249,6 +260,7 @@ async function main() {
         phone: biz.phone,
         website: biz.website,
         photoUrl: biz.photoUrl,
+        ...(biz.email ? { email: biz.email } : {}),
       },
       create: {
         id: slugify(biz.name),
@@ -259,6 +271,7 @@ async function main() {
         phone: biz.phone,
         website: biz.website,
         photoUrl: biz.photoUrl,
+        ...(biz.email ? { email: biz.email } : {}),
       },
     });
     console.log(`  ✓ ${biz.name}`);
