@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { ChunkLoadErrorHandler } from '@/components/chunk-load-error-handler';
 import { GoogleAnalytics } from '@/components/google-analytics';
+import { SiteTracker } from '@/components/site-tracker';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <SiteTracker />
           <ChunkLoadErrorHandler />
         </ThemeProvider>
       </body>

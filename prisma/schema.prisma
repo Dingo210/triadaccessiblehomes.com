@@ -31,3 +31,19 @@ model Business {
   @@index([categorySlug])
   @@index([featured])
 }
+
+/// First-party, cookieless analytics: pageviews and provider contact clicks.
+/// No IP, user agent, or cookie is stored — `visitorHash` is a salted hash that
+/// rotates daily (see lib/analytics.ts). Additive table; nothing references it.
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  type        String   // pageview | phone_click | email_click | website_click
+  businessId  String?  // set for listing pageviews and contact clicks
+  path        String   @default("")
+  referrer    String   @default("") // external referrer hostname only
+  visitorHash String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([businessId, createdAt])
+}

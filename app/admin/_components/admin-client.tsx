@@ -10,6 +10,7 @@ import { FadeIn } from '@/components/ui/animate';
 import { Lock, LogOut, Star, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { SafeDate } from '@/components/safe-format';
+import { AnalyticsPanel } from './analytics-panel';
 
 interface Business {
   id: string;
@@ -151,7 +152,7 @@ export function AdminClient() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-              <p className="text-muted-foreground">Manage all business listings and featured status.</p>
+              <p className="text-muted-foreground">Traffic, provider leads, and featured status.</p>
             </div>
             <Button variant="outline" onClick={handleLogout} className="gap-2">
               <LogOut className="h-4 w-4" /> Logout
@@ -159,6 +160,9 @@ export function AdminClient() {
           </div>
         </FadeIn>
 
+        <AnalyticsPanel />
+
+        <h2 className="font-display text-2xl font-semibold tracking-tight mb-3">Listings</h2>
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">

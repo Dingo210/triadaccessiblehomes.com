@@ -74,6 +74,7 @@ triadaccessiblehomes.com/          # repo root == the Next.js app
 │   ├── db.ts                      # Prisma singleton
 │   ├── stripe.ts                  # Stripe singleton
 │   ├── admin-auth.ts              # signed admin sessions (§4.5)
+│   ├── analytics.ts               # first-party traffic & lead tracking (§4.11)
 │   ├── categories.ts              # 8 service categories + matching logic
 │   ├── seo.ts                     # JSON-LD schema builders + site URL helper
 │   ├── guides.ts                  # 4 long-form SEO guide articles
@@ -97,18 +98,20 @@ triadaccessiblehomes.com/          # repo root == the Next.js app
 │   ├── search/                    # page.tsx + _components/search-results.tsx
 │   ├── guides/                    # page.tsx + [slug]/page.tsx
 │   ├── locations/                 # page.tsx + [city]/page.tsx
-│   ├── admin/                     # page.tsx + _components/admin-client.tsx
+│   ├── admin/                     # page.tsx + _components/admin-client.tsx, analytics-panel.tsx
 │   │
 │   └── api/
 │       ├── checkout/route.ts               # POST — create Stripe Checkout session
+│       ├── track/route.ts                  # POST — public cookieless event collector (§4.11)
 │       ├── webhooks/stripe/route.ts        # POST — Stripe webhook handler
 │       └── admin/
+│           ├── analytics/route.ts          # GET — traffic & leads summary (admin only)
 │           ├── auth/route.ts               # POST/GET/DELETE — login/status/logout
 │           ├── businesses/route.ts         # GET — list all (admin only)
 │           └── toggle-featured/route.ts    # POST — toggle featured (admin only)
 │
 ├── components/
-│   ├── json-ld.tsx  google-analytics.tsx  safe-format.tsx  client-only.tsx
+│   ├── json-ld.tsx  google-analytics.tsx  site-tracker.tsx  safe-format.tsx  client-only.tsx
 │   ├── chunk-load-error-handler.tsx  theme-provider.tsx  theme-toggle.tsx
 │   ├── layouts/                   # app-shell, container, section, page-header
 │   └── ui/                        # ~60 shadcn/ui primitives
@@ -123,7 +126,8 @@ triadaccessiblehomes.com/          # repo root == the Next.js app
 
 ## 3. Database Schema
 
-PostgreSQL on **Neon**, accessed through Prisma. A single model powers the whole directory.
+PostgreSQL on **Neon**, accessed through Prisma. `Business` powers the directory; `AnalyticsEvent`
+(added 2026-09-14) holds first-party traffic and lead events — see §4.11.
 
 ```prisma
 generator client {
@@ -162,7 +166,8 @@ model Business {
 ```
 
 Key points:
-- **One table.** All listings are `Business` rows. There is no user table — the site is a public directory.
+- **One listings table.** All listings are `Business` rows. `AnalyticsEvent` is append-only tracking
+  data with no foreign key to `Business`, so it can never block a listing change. There is no user table — the site is a public directory.
 - **`categorySlug`** is the join key to the static `CATEGORIES` array in `lib/categories.ts`. Categories are code, not DB rows.
 - **Featured state** is driven by Stripe webhooks (§5) and by the admin toggle.
 - Seed IDs are **slugified business names** (e.g. `medsource-inc`) so re-seeding is idempotent via `upsert`.
@@ -286,6 +291,26 @@ Idempotent `upsert` seed of the 22 Triad businesses. `slugify(name)` becomes the
 `safe-seed.ts` refuses to run if `seed.ts` contains `prisma.*.delete`/`deleteMany`, so the seed can
 never destroy data. `package.json` wires `prisma.seed` to `safe-seed.ts`.
 
+### 4.11 Traffic & lead analytics — `lib/analytics.ts` (added 2026-09-14)
+First-party and cookieless, built so the directory can show providers real numbers. (The first
+provider offered Featured declined because no traffic data existed.)
+
+- `components/site-tracker.tsx`, mounted in `app/layout.tsx`, sends a `pageview` on every route
+  change. The listing page's contact links send `phone_click` / `email_click` / `website_click`.
+  Both use `navigator.sendBeacon`, so taps that leave the site are still recorded.
+- `POST /api/track` **always returns 204** and silently drops: bots (user-agent regex), the
+  signed-in admin, `/admin` paths, unknown event types, and clicks for listings that don't exist.
+  A 204 therefore proves nothing about whether a row was written — check the table.
+- **No personal data is stored** — no IP, user agent, or cookie. `visitorHash` is a truncated
+  SHA-256 of `ADMIN_SESSION_SECRET | UTC date | IP | UA`, which rotates daily. Consequences:
+  "visitors" means unique **per day**, and rotating `ADMIN_SESSION_SECRET` resets same-day dedupe.
+- Provider metrics count **distinct daily visitors**, not raw events, so repeated taps or one
+  source hammering the collector can't inflate a provider's leads.
+- `GET /api/admin/analytics?days=7|30|90` powers the "Traffic & Leads" section of `/admin`. Daily
+  buckets are in ET.
+- **No history before 2026-09-14.** GA4 still runs alongside and has older data, but reading it
+  programmatically would need a Google service-account key that is not configured.
+
 ---
 
 ## 5. API & Integrations
@@ -297,6 +322,8 @@ never destroy data. `package.json` wires `prisma.seed` to `safe-seed.ts`.
 | `/api/admin/auth` | POST / GET / DELETE | signed cookie | Admin login / status / logout |
 | `/api/admin/businesses` | GET | signed cookie | List all businesses |
 | `/api/admin/toggle-featured` | POST | signed cookie | Manually toggle a business's featured flag |
+| `/api/admin/analytics` | GET | signed cookie | Traffic & leads summary for 7 / 30 / 90 days |
+| `/api/track` | POST | public | Cookieless pageview / contact-click collector; always 204 |
 
 **Stripe.** Product *"Featured Listing — AccessHome Directory"*, **$40/month recurring (USD)**,
 created lazily on first checkout and reused (`metadata.app = 'accesshome_featured'`).
@@ -475,7 +502,7 @@ www   A   216.198.79.1
 | `/search?q=` | Server | Keyword search across name/description/category |
 | `/guides` + `/guides/[slug]` | Server | SEO guide index + articles |
 | `/locations` + `/locations/[city]` | Server | City landing index + pages |
-| `/admin` | Client-gated | Password login + featured-toggle dashboard |
+| `/admin` | Client-gated | Password login + traffic & leads analytics + featured toggles |
 | `/sitemap.xml`, `/robots.txt` | Dynamic | SEO |
 
 ---

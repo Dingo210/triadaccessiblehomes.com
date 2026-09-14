@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { track } from '@/components/site-tracker';
 
 interface Business {
   id: string;
@@ -111,7 +112,7 @@ export function ListingClient({ business }: { business: Business }) {
                   <h2 className="font-display text-xl font-semibold">Contact Information</h2>
 
                   {biz.phone && (
-                    <a href={`tel:${biz.phone}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
+                    <a href={`tel:${biz.phone}`} onClick={() => track('phone_click', { businessId: biz.id })} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Phone className="h-5 w-5" />
                       </div>
@@ -123,7 +124,7 @@ export function ListingClient({ business }: { business: Business }) {
                   )}
 
                   {biz.email && (
-                    <a href={`mailto:${biz.email}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
+                    <a href={`mailto:${biz.email}`} onClick={() => track('email_click', { businessId: biz.id })} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Mail className="h-5 w-5" />
                       </div>
@@ -135,7 +136,7 @@ export function ListingClient({ business }: { business: Business }) {
                   )}
 
                   {biz.website && (
-                    <a href={biz.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
+                    <a href={biz.website} target="_blank" rel="noopener noreferrer" onClick={() => track('website_click', { businessId: biz.id })} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Globe className="h-5 w-5" />
                       </div>
